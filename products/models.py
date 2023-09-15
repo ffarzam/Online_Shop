@@ -18,7 +18,7 @@ class Products(models.Model):
     quantity = models.PositiveIntegerField()
     brand = models.ForeignKey(Brand, on_delete=models.PROTECT)
     product_year = models.PositiveIntegerField()
-    feature = models.ForeignKey(Feature, on_delete=models.PROTECT)
+    feature = models.OneToOneField(Feature, on_delete=models.PROTECT)
     price = models.DecimalField(max_digits=6, decimal_places=2)
     description = models.TextField()
     is_active = models.BooleanField()
