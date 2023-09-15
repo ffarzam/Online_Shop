@@ -23,3 +23,15 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
+
+
+class Address(models.Model):
+    title = models.CharField(max_length=25)
+    province = models.CharField(max_length=100)
+    city = models.CharField(max_length=100)
+    street = models.CharField(max_length=100)
+    alley = models.CharField(max_length=100)
+    number = models.PositiveIntegerField()
+    unit = models.PositiveIntegerField()
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+
