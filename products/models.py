@@ -8,9 +8,11 @@ class Brand(models.Model):
 
 
 class Feature(models.Model):
-    color = models.CharField(max_length=25)
-    ram = models.PositiveIntegerField()
-    memory = models.PositiveIntegerField()
+    feature_key = models.CharField(max_length=50)
+    feature_value = models.CharField(max_length=50)
+
+    class Meta:
+        unique_together = ('feature_key', 'feature_value',)
 
 
 class Products(models.Model):
@@ -18,7 +20,6 @@ class Products(models.Model):
     quantity = models.PositiveIntegerField()
     brand = models.ForeignKey(Brand, on_delete=models.PROTECT)
     product_year = models.PositiveIntegerField()
-    feature = models.OneToOneField(Feature, on_delete=models.PROTECT)
     price = models.DecimalField(max_digits=6, decimal_places=2)
     description = models.TextField()
     is_active = models.BooleanField()
@@ -28,3 +29,8 @@ class Image(models.Model):
     products = models.ForeignKey(Products, on_delete=models.PROTECT)
     is_main = models.BooleanField()
     image = models.FileField(upload_to="products_image")
+
+
+class Product_details(models.Model):
+    product = models.ForeignKey(Products, on_delete=models.CASCADE)
+    feature = models.ForeignKey(Feature, on_delete=models.CASCADE)
