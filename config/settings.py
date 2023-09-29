@@ -9,8 +9,10 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+import os
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-=kmq&^cfg#p#g$=4tpz2b+kguf!p@%gn#vuko&-9n((2-o$jz!'
+SECRET_KEY = os.environ.get("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -37,6 +39,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'django_filters',
+    'accounts',
+    'interactions',
+    'orders',
+    'products',
+
 ]
 
 MIDDLEWARE = [
@@ -75,8 +84,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'HOST': 'postgres',
+        'PORT': os.environ.get('PORT'),
+        'USER': os.environ.get('USER'),
+        'PASSWORD': os.environ.get('PASSWORD')
     }
 }
 
@@ -121,3 +134,44 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'accounts.authentication.AuthBackend',
+]
+
+ACCESS_TOKEN_TTL = 60 * 60 * 24 * 1  # 1 Day
+REFRESH_TOKEN_TTL = 60 * 60 * 24 * 14  # 14 Day
+REDIS_HOST = 'redis'
+REDIS_PORT = 6379
+REDIS_DEFAULT_TTL = 60 * 60 * 24 * 14  # 14 Days
+REDIS_AUTH_TTL = 60 * 60 * 24 * 14  # 14 Day
+REDIS_CART_TTL = 60 * 60 * 24 * 14  # 14 Day
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/1',
+        'TIMEOUT': REDIS_DEFAULT_TTL,
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+    },
+
+    'auth': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/2',
+        'TIMEOUT': REDIS_AUTH_TTL,
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+    },
+
+}
+
+#
+# CELERY_BROKER_URL = 'redis://127.0.0.1:6379/1'
+# CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/1'
+# CELERY_TIMEZONE = 'UTC'

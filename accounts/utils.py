@@ -54,4 +54,4 @@ def cache_key_setter(user_id, jti):
 
 
 def cache_value_setter(request):
-    return f"{request.META['HTTP_USER_AGENT']} || {request.META['USERNAME']}"
+    return f"{request.META.get('HTTP_USER_AGENT', 'UNKNOWN')} || {request.META.get('USERNAME', 'UNKNOWN')}"

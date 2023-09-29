@@ -8,7 +8,6 @@ from .utils import phoneNumberRegex
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=25, verbose_name=_("Username"), unique=True)
     email = models.EmailField(verbose_name=_("Email"), unique=True)
-    phone = models.CharField(verbose_name=_("Phone Number"), validators=[phoneNumberRegex], unique=True)
     first_name = models.CharField(max_length=50, verbose_name=_("First Name"))
     last_name = models.CharField(max_length=100, verbose_name=_("Last Name"))
     is_active = models.BooleanField(default=True)
@@ -36,4 +35,7 @@ class Address(models.Model):
     number = models.PositiveIntegerField()
     unit = models.PositiveIntegerField()
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.user} || {self.title}"
 

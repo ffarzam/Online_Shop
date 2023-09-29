@@ -1,0 +1,82 @@
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:14.0
+    environment:
+      POSTGRES_USER: ${USER}
+      POSTGRES_PASSWORD: ${PASSWORD}
+      POSTGRES_DB: ${NAME}
+    networks:
+      - main
+    ports:
+      - 5432:5432
+    restart: always
+    volumes:
+      - postgres_data1:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: app
+    volumes:
+      - .:/code/
+    networks:
+      - main
+    depends_on:
+      - postgres
+    ports:
+      - 8000:8000
+    restart: always
+
+  redis:
+    container_name: redis
+    image: redis:7.2
+    networks:
+      - main
+    ports:
+      - 6379:6379
+    restart: always
+    volumes:
+      - redis_data1:/data
+
+
+  celery:
+    container_name: celery
+    build: .
+    command: celery -A config worker -l INFO
+    depends_on:
+      - app
+      - redis
+    environment:
+      - C_FORCE_ROOT="true"
+    networks:
+      - main
+    restart: always
+    volumes:
+      - .:/code/
+
+
+  flower:
+    image: mher/flower:2.0
+    container_name: flower
+    command: celery -A config flower
+    networks:
+      - main
+    ports:
+      - 5555:5555
+    depends_on:
+      - celery
+    volumes:
+      - staticfiles:/app/staticfiles
+      - mediafiles:/app/mediafiles
+      - flower_db:/app/flower_db
+    restart: always
+
+networks:
+  main:
+
+volumes:
+  postgres_data1:
+  redis_data1:
+  staticfiles:
+  mediafiles:
+  flower_db:

@@ -31,6 +31,6 @@ class Image(models.Model):
     image = models.FileField(upload_to="products_image")
 
 
-class Product_details(models.Model):
+class ProductDetails(models.Model):
     product = models.ForeignKey(Products, on_delete=models.CASCADE)
     feature = models.ForeignKey(Feature, on_delete=models.CASCADE)

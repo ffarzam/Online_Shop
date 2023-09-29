@@ -1,4 +1,6 @@
-from rest_framework.generics import UpdateAPIView
+import json
+
+from rest_framework.generics import UpdateAPIView, CreateAPIView, DestroyAPIView, ListAPIView, RetrieveAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -7,12 +9,14 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import authenticate
 from django.core.cache import caches
 
-from .models import CustomUser
+from .models import Address
 from .serializers import UserRegisterSerializer, UserLoginSerializer, ProfileSerializer, ChangePasswordSerializer, \
-    UpdateUserSerializer
+    UpdateUserSerializer, UserAddressSerializer
 from .authentication import AccessTokenAuthentication, RefreshTokenAuthentication
 from .utils import generate_refresh_token, generate_access_token, jti_maker, cache_key_setter, cache_value_setter, \
     cache_key_or_value_parser
+
+from orders.models import CartItem
 
 from Permissions import UserIsOwner
 
@@ -56,6 +60,24 @@ class UserLogin(APIView):
             "access": access_token,
             "refresh": refresh_token,
         }
+
+        cart = request.COOKIES.get('cart')
+        if cart:
+            cart = json.loads(cart)
+            # cart_obj_list = []
+            for product_id, quantity in cart.items():
+                cart, created = CartItem.objects.get_or_create(user=user, product_id=product_id)
+
+                if created:
+                    cart.quantity = quantity
+                else:
+                    cart.quantity += quantity
+                cart.save()
+
+            #     cart_obj_list.append(cart)
+            #
+            # CartItem.objects.bulk_create(cart_obj_list)
+
         return Response(data, status=status.HTTP_201_CREATED)
 
 
@@ -159,21 +181,71 @@ class ShowProfile(APIView):
 
 
 class ChangePasswordView(UpdateAPIView):
+    http_method_names = ["patch"]
     authentication_classes = (AccessTokenAuthentication,)
-    permission_classes = (IsAuthenticated, UserIsOwner)
-    queryset = CustomUser.objects.all()
+    permission_classes = (IsAuthenticated,)
     serializer_class = ChangePasswordSerializer
 
     def patch(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer = self.serializer_class(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response({"message": "Password has been successfully updated"})
 
+    def get_object(self):
+        return self.request.user
+
 
 class UpdateProfileView(UpdateAPIView):
+    http_method_names = ["patch"]
+    authentication_classes = (AccessTokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    serializer_class = UpdateUserSerializer
+
+    def get_object(self):
+        return self.request.user
+
+
+class CreateAddress(CreateAPIView):
+    http_method_names = ["post"]
+    authentication_classes = (AccessTokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    serializer_class = UserAddressSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+
+class RemoveAddress(DestroyAPIView):
+    http_method_names = ["delete"]
     authentication_classes = (AccessTokenAuthentication,)
     permission_classes = (IsAuthenticated, UserIsOwner)
-    queryset = CustomUser.objects.all()
-    serializer_class = UpdateUserSerializer
+    queryset = Address.objects.all()
+
+
+class AddressList(ListAPIView):
+    http_method_names = ["get"]
+    authentication_classes = (AccessTokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    serializer_class = UserAddressSerializer
+
+    def get_queryset(self):
+        return Address.objects.filter(user=self.request.user)
+
+
+class UpdateAddress(UpdateAPIView):
+    http_method_names = ["patch"]
+    authentication_classes = (AccessTokenAuthentication,)
+    permission_classes = (IsAuthenticated, UserIsOwner)
+    serializer_class = UserAddressSerializer
+    queryset = Address.objects.all()
+
+
+class GetAddress(RetrieveAPIView):
+    queryset = Address.objects.all()
+    serializer_class = UserAddressSerializer
