@@ -10,6 +10,7 @@ from Online_Shop.orders.models import OrderDetail, Order
 from Online_Shop.orders.serializer import OrderSerializer
 from .models import CartItem
 from .serializer import CartItemSerializer
+from .tasks import send_confirmation
 
 
 # Create your views here.
@@ -107,10 +108,11 @@ class CreateOrder(APIView):
 
             OrderDetail.objects.bulk_create(order_details_obj_list)
 
-        if len(unavailable) == 0:
-            CartItem.objects.filter(product_id__in=unavailable).delete()
+        if len(unavailable) != 0:
+            CartItem.objects.filter(user=user, product_id__in=unavailable).delete()
             qs = CartItem.objects.filter(user=user)
             serializer = self.serializer_class(qs, many=True)
             return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
         else:
+            send_confirmation.delay(user.id)
             return Response("Order has been created!", status=status.HTTP_201_CREATED)

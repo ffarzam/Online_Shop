@@ -1,33 +1,42 @@
 from django.db import models
-from django.db.models import Sum, F
 from django.utils.translation import gettext_lazy as _
-
 
 from accounts.models import CustomUser
 
 from accounts.models import Address
 from products.models import Products
 
+from .tasks import send_confirmation
+
+
 
 # Create your models here.
 
 
 class Order(models.Model):
-    PAYMENT_STATUS_PENDING = 'P'
-    PAYMENT_STATUS_COMPLETE = 'C'
-    PAYMENT_STATUS_FAILED = 'F'
-    PAYMENT_STATUS_CHOICES = [
-        (PAYMENT_STATUS_PENDING, 'Pending'),
-        (PAYMENT_STATUS_COMPLETE, 'Complete'),
-        (PAYMENT_STATUS_FAILED, 'Failed')
+    ORDER_STATUS_PROCESSING = 'P'
+    ORDER_STATUS_SHIPPING = 'S'
+    ORDER_STATUS_DELIVERED = 'D'
+    ORDER_STATUS_DELIVER_RETURNED = 'R'
+    ORDER_STATUS_CHOICES = [
+        (ORDER_STATUS_PROCESSING, 'Pending'),
+        (ORDER_STATUS_SHIPPING, 'Shipping'),
+        (ORDER_STATUS_DELIVERED, 'Delivered'),
+        (ORDER_STATUS_DELIVER_RETURNED, 'Returned')
     ]
 
     order_date = models.DateTimeField(verbose_name=_("Order Date"), auto_now_add=True, editable=False)
     last_modify = models.DateTimeField(verbose_name=_("Last Modify"), auto_now=True, editable=False)
-    payment_status = models.CharField(
-        max_length=1, choices=PAYMENT_STATUS_CHOICES, default=PAYMENT_STATUS_PENDING)
+    order_status = models.CharField(
+        max_length=2, choices=ORDER_STATUS_CHOICES, default=ORDER_STATUS_PROCESSING)
     customer = models.ForeignKey(CustomUser, on_delete=models.PROTECT)
     address = models.ForeignKey(Address, on_delete=models.PROTECT)
+
+    def save(self, *args, **kwargs):
+        order_status = self.order_status
+        super().save(*args, **kwargs)
+        if self.order_status != order_status:
+            send_confirmation.delay(self.id, self.order_status)
 
 
 
